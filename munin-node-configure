@@ -1,0 +1,11 @@
+#!/bin/sh
+
+export MUNIN_PLUGSTATE="/var/lib/munin-node/plugin-state/"
+export MUNIN_LIBDIR="/usr/libexec/munin/"
+find /usr/libexec/munin/plugins -type f |
+while read p
+do
+	echo "TRY $p"
+	$p autoconf
+done
+

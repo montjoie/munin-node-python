@@ -28,7 +28,7 @@ class pymunin:
     def __init__(self):
         self.tests = []
         self.lldebug = True
-        self.name = socket.gethostname())
+        self.name = socket.gethostname()
         self.pluginconf = {}
         self.caps = []
         self.etc_plugin = "/etc/munin/plugins"
