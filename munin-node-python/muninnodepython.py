@@ -143,7 +143,7 @@ class pymunin:
         if buf == "quit":
             s.close()
             return
-        s.send(b"# Unknown command. Try cap, list, nodes, config, fetch, version or quit")
+        s.send(b"# Unknown command. Try cap, list, nodes, config, fetch, version or quit\n")
 
         # Unknown command. Try cap, list, nodes, config, fetch, version or quit
 
