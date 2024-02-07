@@ -2,10 +2,68 @@
 
 export MUNIN_PLUGSTATE="/var/lib/munin-node/plugin-state/"
 export MUNIN_LIBDIR="/usr/libexec/munin/"
-find /usr/libexec/munin/plugins -type f |
+SHELL=0
+SUGGEST=1
+
+case $1 in
+--suggest)
+	shift
+	SUGGEST=1
+;;
+*)
+;;
+esac
+
+# we can either find executable or filter plugins.history/plugins.sh
+# finding executable is non portable accross Linux/BSD
+case $(uname) in
+Linux)
+	TMP=$(mktemp)
+	find /usr/libexec/munin/plugins -type f -executable |grep -iE 'sen|if' > $TMP
+;;
+*)
+	echo "ERROR: not supported OS"
+	exit 1
+;;
+esac
+
+do_suggest() {
+	p="$1"
+	grep -q 'capabilities=.*suggest' $p
+	if [ $? -ne 0 ];then
+		echo "DEBUG: $p does not support suggest"
+		return
+	fi
+	$p suggest > ${OUT}-suggest
+	while read sug
+	do
+		echo "DEBUG: suggest $sug"
+		echo "ln -s $p /etc/munin/plugins/${p}$sug"
+	done < ${OUT}-suggest
+	rm ${OUT}-suggest
+}
+
+
+OUT=$(mktemp)
 while read p
 do
+	grep -q 'capabilities=.*autoconf' $p
+	if [ $? -ne 0 ];then
+		echo "DEBUG: $p does not support autoconf"
+		continue
+	fi
 	echo "TRY $p"
-	$p autoconf
-done
+	$p autoconf > $OUT
+	cat $OUT
+	grep -q '^yes' $OUT
+	if [ $? -eq 0 ];then
+		if [ $SUGGEST -eq 1 ];then
+			do_suggest $p
+		else
+			echo "ln -s $p /etc/munin/plugins/$p"
+		fi
+	fi
+done < $TMP
 
+rm $OUT
+rm $TMP
