@@ -6,6 +6,7 @@
     SPDX-License-Identifier: GPL-2.0
 """
 
+import asyncio
 import argparse
 import os
 import socket
@@ -13,7 +14,6 @@ from datetime import datetime
 import re
 import time
 import subprocess
-import sys
 
 
 # Xymon use a format for day number not availlable on python
@@ -91,15 +91,13 @@ class pymunin:
             print(data)
         return data
 
-    def parse(self, C):
-        print(f"DEBUG: parse {C}")
-        buf = C["buf"].rstrip()
-        s = C["s"]
+    def parse(self, buf):
         self.debug(f"DEBUG: get {buf}END")
         if buf[:8] == 'version ':
             sbuf = f"munins node on {self.name} version: 0"
-            s.send(sbuf.encode("UTF8"))
-            return
+            return sbuf
+        if buf[:4] == 'quit':
+            return ""
         if buf[:4] == 'cap ':
             tokens = buf.split(" ")
             tokens.pop(0)
@@ -110,14 +108,12 @@ class pymunin:
                     self.debug(f"DEBUG: CAP support {cap}")
                 else:
                     self.debug(f"DEBUG: CAP unsupported {cap}")
-            s.send(C["buf"].encode("UTF8"))
-            return
+            return buf
         if buf[:4] == 'list':
             dirFiles = os.listdir(self.etc_plugin)
             pluginlist = " ".join(dirFiles)
             pluginlist += "\n"
-            s.send(pluginlist.encode("UTF8"))
-            return
+            return pluginlist
         if buf[:7] == 'config ':
             self.debug("DEBUG: handle config")
             tokens = buf.split(" ")
@@ -127,82 +123,39 @@ class pymunin:
                 return
             plugin = tokens[1]
             data = self.exec_plugin(f"{self.etc_plugin}/{plugin}", "config")
-            s.send(data.encode("UTF8"))
-            return
+            return data
         if buf[:6] == 'fetch ':
             self.debug("DEBUG: handle fetch")
             tokens = buf.split(" ")
             if len(tokens) != 2:
                 print(f"ERROR: invalid tokens len {len(tokens)}")
                 # error
-                return
+                return "ERROR"
             plugin = tokens[1]
             data = self.exec_plugin(f"{self.etc_plugin}/{plugin}", None)
-            s.send(data.encode("UTF8"))
-            return
+            return data
         if buf == "quit":
-            s.close()
-            return
-        s.send(b"# Unknown command. Try cap, list, nodes, config, fetch, version or quit\n")
+            return ""
+        return "# Unknown command. Try cap, list, nodes, config, fetch, version or quit\n"
 
-        # Unknown command. Try cap, list, nodes, config, fetch, version or quit
+    async def talk_to_client(self, reader, writer):
+        peername = writer.get_extra_info('peername')
+        print('Connection from {}'.format(peername))
+        greet = f"# munin node at {self.name}\n"
+        writer.write(greet.encode("UTF8"))
 
-    def net_start(self):
-        self.s = socket.socket()
-        self.s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.log('network', f"DEBUG: listen on {self.netport}")
-        self.s.bind(("0.0.0.0", self.netport))
-        self.s.setblocking(0)
-        self.clients = []
-        self.s.listen(1000)
-
-    def net_loop(self):
-        now = time.time()
-        try:
-            c, addr = self.s.accept()
-            c.setblocking(0)
-            self.log('network', 'DEBUG: Got connection from %s' % str(addr))
-            C = {}
-            C["s"] = c
-            C["t"] = now
-            C["buf"] = ""
-            # we need only IP
-            C["addr"] = addr[0]
-            sbuf = f"# munin node at {self.name}\n"
-            c.send(sbuf.encode("UTF8"))
-            self.clients.append(C)
-        except socket.error:
-            # self.debug("DEBUG: nobody")
-            pass
-        for C in self.clients:
-            client = C["s"]
+        while True:
+            data = await reader.read(1024)
+            send = self.parse(data.decode("UTF8"))
+            if send == "":
+                writer.close()
+                return
+            writer.write(send.encode("UTF8"))
             try:
-                buf = client.recv(64000)
-            except socket.error as e:
-                if C["t"] + 30 < now:
-                    self.debug(f'TIMEOUT client len={len(C["buf"])} addr={C["addr"]}')
-                    client.close()
-                    self.clients.remove(C)
-                # else:
-                #    self.debug("DEBUG: nothing to recv")
-                # print(self.clients)
-                # print(e)
-                # return True
-                continue
-            if not buf:
-                self.debug("DEBUG: client disconnected")
-                client.close()
-                self.clients.remove(C)
-            else:
-                self.debug(f"RECV {buf}")
-                try:
-                    C["buf"] = buf.decode("UTF8")
-                    self.parse(C)
-                except:
-                    self.debug("DEBUG: client disconnected2")
-                    client.close()
-                    self.clients.remove(C)
-        return True
+                await writer.drain()
+            except ConnectionResetError:
+                writer.close()
+                return
 
     def read_conf(self):
         f = open("/etc/munin/plugin-conf.d/munin-node")
@@ -238,7 +191,6 @@ class pymunin:
                 continue
             self.debug(f"DEBUG: unmatched {section} {line}")
 
-
     def configure(self):
         self.debug("DEBUG: CONFIGURE")
         dirFiles = os.listdir(self.plugindir)
@@ -262,6 +214,12 @@ class pymunin:
             else:
                 self.debug(f"DEBUG: do not use {plugin}")
                 self.debug(ret)
+
+    async def run(self):
+        coro = await asyncio.start_server(self.talk_to_client, 'localhost', self.netport)
+        async with coro:
+            await coro.serve_forever()
+
 
 def main():
     print('munin-node-python v1')
@@ -287,8 +245,7 @@ def main():
         X.configure()
 
     if args.daemon:
-        X.net_start()
-        while True:
-            X.net_loop()
-            time.sleep(0.01)
-        sys.exit(0)
+        asyncio.run(X.run())
+
+
+main()
