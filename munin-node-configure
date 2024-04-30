@@ -19,7 +19,7 @@ esac
 case $(uname) in
 Linux)
 	TMP=$(mktemp)
-	find /usr/libexec/munin/plugins -type f -executable |grep -iE 'sen|if' > $TMP
+	find /usr/libexec/munin/plugins -type f -executable |grep -iE 'sen|if|cpu|uptime' > $TMP
 ;;
 *)
 	echo "ERROR: not supported OS"
@@ -32,15 +32,19 @@ do_suggest() {
 	grep -q 'capabilities=.*suggest' $p
 	if [ $? -ne 0 ];then
 		echo "DEBUG: $p does not support suggest"
-		return
+		return 0
 	fi
+	PNAME=$(basename $p)
 	$p suggest > ${OUT}-suggest
 	while read sug
 	do
-		echo "DEBUG: suggest $sug"
-		echo "ln -s $p /etc/munin/plugins/${p}$sug"
+		if [ ! -e "/etc/munin/plugins/${PNAME}$sug" ];then
+			echo "DEBUG: suggest $sug"
+			echo "ln -s $p /etc/munin/plugins/${PNAME}$sug"
+		fi
 	done < ${OUT}-suggest
 	rm ${OUT}-suggest
+	return 1
 }
 
 
@@ -52,6 +56,7 @@ do
 		echo "DEBUG: $p does not support autoconf"
 		continue
 	fi
+	PNAME=$(basename $p)
 	echo "TRY $p"
 	$p autoconf > $OUT
 	cat $OUT
@@ -59,8 +64,11 @@ do
 	if [ $? -eq 0 ];then
 		if [ $SUGGEST -eq 1 ];then
 			do_suggest $p
+			if [ $? -eq 0 ];then
+				echo "ln -s $p /etc/munin/plugins/$PNAME"
+			fi
 		else
-			echo "ln -s $p /etc/munin/plugins/$p"
+			echo "ln -s $p /etc/munin/plugins/$PNAME"
 		fi
 	fi
 done < $TMP
