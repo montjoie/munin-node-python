@@ -7,6 +7,9 @@ set(MNP_VARLOG "var/log/munin-node")
 set(MNP_USR "/usr/libexec/munin/plugins/")
 
 install(FILES etc/munin-node DESTINATION ${MNP_ETC}/plugin-conf.d/)
+install(FILES munin-node-configure DESTINATION /usr/bin/ PERMISSIONS
+	OWNER_EXECUTE OWNER_WRITE OWNER_READ GROUP_READ GROUP_EXECUTE
+	WORLD_READ WORLD_EXECUTE)
 install(DIRECTORY munin/plugins/node.d/ DESTINATION ${MNP_USR})
 install(DIRECTORY DESTINATION /${MNP_ETC})
 install(DIRECTORY DESTINATION /${MNP_ETC}/plugin-conf.d)

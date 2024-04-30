@@ -26,7 +26,7 @@ jobs:
       - name: install cmake
         run: |
           sudo apt-get -y install cmake
-      - name: build wit cmake
+      - name: build with cmake
         run: |
           pwd
           git submodule
@@ -46,3 +46,9 @@ jobs:
       - name: Try to setup.py
         run: |
           python setup.py install
+      - name: Run munin-node-configure
+        run: |
+          munin-node-configure
+          munin-node-configure --shell
+          munin-node-configure --suggest
+          munin-node-configure --shell --suggest
