@@ -1,0 +1,117 @@
+#!/bin/sh
+
+#%# family=auto
+#%# capabilities=autoconf suggest
+export LC_ALL=C
+export LANG=C
+#find /sys/class/hwmon/*/ -type f
+
+MODE="fetch"
+WHAT=$(basename "$0" | sed 's,^sensors_,,')
+
+if [ "$WHAT" = "" ];then
+	WHAT="temp"
+fi
+
+LMSENSORS=0
+sensors --help >/dev/null 2>/dev/null
+if [ $? -eq 0 ];then
+	LMSENSORS=1
+fi
+
+while [ $# -ge 1 ]
+do
+case $1 in
+config)
+	shift
+	MODE="config"
+	echo "graph_title Temperatures
+graph_vlabel degrees Celsius
+graph_args --base 1000 -l 0
+graph_category sensors"
+;;
+autoconf)
+	if [ $LMSENSORS -eq 1 ];then
+		echo "yes"
+	fi
+	if [ -e /sys/class/hwmon/ ];then
+		echo "yes"
+	fi
+	exit 0
+;;
+suggest)
+	echo "TODO"
+	exit 1
+;;
+*)
+	echo "ERROR: unknow argument $1"
+	exit 1
+;;
+esac
+done
+
+if [ $LMSENSORS -eq 0 ];then
+	i=0
+	for hwi in $(seq 0 8)
+	do
+		if [ ! -e /sys/class/hwmon/hwmon$hwi ];then
+			continue
+		fi
+		hp="/sys/class/hwmon/hwmon$hwi"
+		case $WHAT in
+		temp)
+			for t in $(seq 0 8)
+			do
+				#echo "DEBUG: temp$t for hwmon$hwi"
+				if [ -e "$hp/temp${t}_input" ];then
+					case $MODE in
+					fetch)
+					V=$(cat $hp/temp${t}_input)
+					# TODO check bc is here
+					V=$(echo "scale=2; $V/1000" | bc)
+					echo "temp$i.value $V"
+					;;
+					esac
+				else
+					continue
+				fi
+				case $MODE in
+				config)
+				# TODO need to handle sensors.conf
+				LABEL="temp${t}"
+				fp="$hp/temp${t}_label"
+				if [ -e "$fp" ];then
+					LABEL=$(cat $fp)
+				fi
+				echo "temp$i.label $LABEL"
+				;;
+				esac
+				i=$(($i+1))
+			done
+		;;
+		esac
+	done
+	exit 0
+fi
+
+i=0
+sensors | while read line
+do
+	# TODO need to handle +/-
+	echo "$line" |grep -q '^[a-zA-Z0-9 ]*:.*+[0-9]*.[0-9] C'
+	if [ $? -eq 0 ];then
+		i=$(($i+1))
+		case $MODE in
+		config)
+			LABEL=$(echo "$line" |grep -o '^[a-zA-Z0-9 ]*')
+			echo "temp$i.label $LABEL"
+		;;
+		fetch)
+			V=$(echo "$line" |grep -o '+[0-9]*.[0-9] C' | head -n1 | cut -d' ' -f1 | sed 's,\+,,')
+			echo "temp$i.value $V"
+		;;
+		esac
+	fi
+done
+
+exit 0
