@@ -14,6 +14,7 @@ from datetime import datetime
 import re
 import time
 import subprocess
+import logging
 
 
 # Xymon use a format for day number not availlable on python
@@ -33,12 +34,16 @@ class pymunin:
         self.caps = []
         self.etc_plugin = "/etc/munin/plugins"
         self.plugindir = "/usr/libexec/munin/plugins"
+        self.logger = logging.getLogger('munin-node')
+        self.logger.setLevel(logging.INFO)
 
     def debug(self, buf):
+        self.logger.debug(buf)
         if self.lldebug:
             print(buf)
 
     def log(self, facility, buf):
+        self.logger.info(facility + " " + buf)
         f = open("%s/%s.log" % (self.xt_logdir, facility), 'a')
         f.write(f"{xytime(time.time())} {buf}\n")
         f.close()
@@ -46,6 +51,7 @@ class pymunin:
     def error(self, buf):
         print(buf)
         self.log("error", buf)
+        self.logger.error(buf)
 
     def set_netport(self, port):
         if port <= 0 or port > 65535:
@@ -216,7 +222,7 @@ class pymunin:
                 self.debug(ret)
 
     async def run(self):
-        coro = await asyncio.start_server(self.talk_to_client, 'localhost', self.netport)
+        coro = await asyncio.start_server(self.talk_to_client, '*', self.netport)
         async with coro:
             await coro.serve_forever()
 
@@ -240,6 +246,9 @@ def main():
     X.xt_logdir = args.logdir
     X.etcdir = args.etcdir
     X.name = args.name
+    FileOutputHandler = logging.FileHandler(X.xt_logdir + 'munin-node.log')
+    FileOutputHandler.setFormatter(logging.Formatter('%(asctime)s %(message)s'))
+    X.logger.addHandler(FileOutputHandler)
 
     if args.configure:
         X.configure()
