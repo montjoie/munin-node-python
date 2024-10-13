@@ -121,7 +121,7 @@ class pymunin:
                 print(f"ERROR: invalid tokens len {len(tokens)}")
                 # error
                 return
-            plugin = tokens[1]
+            plugin = tokens[1].rstrip()
             data = self.exec_plugin(f"{self.etc_plugin}/{plugin}", "config")
             return data
         if buf[:6] == 'fetch ':
@@ -131,7 +131,7 @@ class pymunin:
                 print(f"ERROR: invalid tokens len {len(tokens)}")
                 # error
                 return "ERROR"
-            plugin = tokens[1]
+            plugin = tokens[1].rstrip()
             data = self.exec_plugin(f"{self.etc_plugin}/{plugin}", None)
             return data
         if buf == "quit":
