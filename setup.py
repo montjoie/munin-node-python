@@ -32,7 +32,7 @@ test_requirements = [
 
 setup(
     name="munin-node-python",
-    version="0.1",
+    version="0.2",
     description="Rewrite in python of munin-node",
     author="Corentin Labbe",
     author_email="clabbe.montjoie@gmail.com",

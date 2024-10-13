@@ -15,6 +15,7 @@ import re
 import time
 import subprocess
 import logging
+from importlib.metadata import version
 
 
 # Xymon use a format for day number not availlable on python
@@ -99,8 +100,11 @@ class pymunin:
 
     def parse(self, buf):
         self.debug(f"DEBUG: get {buf}END")
-        if buf[:8] == 'version ':
-            sbuf = f"munins node on {self.name} version: 0"
+        if buf[:7] == 'version':
+            try:
+                sbuf = f"munins node on {self.name} version: {version('munin-node-python')}\n"
+            except:
+                sbuf = f"munins node on {self.name} version: unknow\n"
             return sbuf
         if buf[:4] == 'quit':
             return ""
