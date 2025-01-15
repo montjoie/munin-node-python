@@ -26,10 +26,6 @@ consider upgrading to a supported Python version.
 
 requires = []
 
-test_requirements = [
-    "pytest>=3",
-]
-
 setup(
     name="munin-node-python",
     version="0.2",
@@ -42,7 +38,7 @@ setup(
     package_dir={"munin-node-python": "munin-node-python"},
     entry_points={
         'console_scripts': [
-            "munin-node = muninnodepython:main",
+            "munin-node = munin_node_python:main",
         ],
     },
     include_package_data=True,
@@ -65,5 +61,4 @@ setup(
         "Programming Language :: Python :: Implementation :: PyPy",
         "Topic :: System :: Monitoring",
     ],
-    tests_require=test_requirements,
 )
