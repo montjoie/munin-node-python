@@ -11,17 +11,17 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.9, "3.10.11", "3.11.5"]
+        python-version: [3.9, "3.10.11", "3.11.5", "3.12", "3.13"]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install flake8 pytest coverage
+          pip install flake8 pytest coverage setuptools
           pip install -e "."
       - name: install cmake
         run: |
@@ -36,6 +36,7 @@ jobs:
           cmake .
           cmake --build .
           sudo cmake --install .
+          sudo chown -R $(id -u -n) /var/log/munin-node
           find |grep munin-node-python$
       - name: Lint with flake8
         run: |
@@ -45,6 +46,7 @@ jobs:
           flake8 . --count --exit-zero --max-complexity=16 --max-line-length=127 --statistics
       - name: Try to setup.py
         run: |
+          pip install -e "."
           python setup.py install
       - name: Run munin-node-configure
         run: |
@@ -52,3 +54,8 @@ jobs:
           munin-node-configure --shell
           munin-node-configure --suggest
           munin-node-configure --shell --suggest
+      - name: Try to run munin-node
+        run: |
+          find /opt|grep munin
+          cat /opt/hostedtoolcache/Python/*/x64/bin/munin-node-python
+          munin-node-python

@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import sys
-from codecs import open
 
 from setuptools import setup
 
@@ -33,12 +32,12 @@ setup(
     author="Corentin Labbe",
     author_email="clabbe.montjoie@gmail.com",
     url="https://github.com/montjoie/munin-node-python",
-    packages=["munin-node-python"],
+    packages=["munin_node_python"],
     package_data={"": ["LICENSE"]},
-    package_dir={"munin-node-python": "munin-node-python"},
+    package_dir={"munin_node_python": "munin-node-python"},
     entry_points={
         'console_scripts': [
-            "munin-node = munin_node_python:main",
+            "munin-node-python = munin_node_python.munin_node_python:main",
         ],
     },
     include_package_data=True,

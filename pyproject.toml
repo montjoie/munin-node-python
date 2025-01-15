@@ -1,0 +1,64 @@
+[project]
+name = "munin-node-python"
+version = "0.2"
+description="rewrite in python of munin-node"
+readme = "README.md"
+authors=[
+	{name = "Corentin LABBE", email = "clabbe.montjoie@gmail.com"}
+]
+requires-python = ">=3.7"
+classifiers=[
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Console",
+    "Intended Audience :: System Administrators",
+    "License :: OSI Approved :: GNU General Public License v2 (GPLv2)",
+    "Natural Language :: English",
+    "Operating System :: OS Independent",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Programming Language :: Python :: Implementation :: PyPy",
+    "Topic :: System :: Monitoring",
+    ]
+license = {text = "LGPL-2.1-or-later"}
+dependencies = [
+]
+
+[tool.setuptools]
+py-modules = ['munin_node_python']
+
+[tool.poetry]
+packages = [
+	{ include = "munin-node-python", from = "munin-node-python" },
+]
+
+[project.optional-dependencies]
+dev = [
+  "coverage",
+  "pytest",
+]
+
+#[tool.setuptools.package-data]
+#munin-node-python = ["LICENSE", "NOTICE"]
+
+[project.urls]
+Homepage = "https://github.com/montjoie/munin-node-python"
+Documentation = "https://github.com/montjoie/munin-node-python"
+Repository = "https://github.com/montjoie/munin-node-python"
+
+[project.scripts]
+munin-node-python = "munin_node_python:main"
+
+[tool.pytest.ini_options]
+addopts = [
+    "--import-mode=importlib",
+]
+

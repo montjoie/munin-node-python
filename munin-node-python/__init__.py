@@ -1,2 +1,1 @@
-# plop
-from .muninnodepython import main
+from .munin_node_python import main
